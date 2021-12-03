@@ -54,18 +54,41 @@ router.get('/games', async function(req,res){
 
     try {
     var videogamesData1;
-    if(name) {
-        videogamesData1 = await axios.get(`https://api.rawg.io/api/games?key=${YOUR_API_KEY}&search=${name}`);
-    }else{
-    videogamesData1 = await axios.get(`https://api.rawg.io/api/games?key=${YOUR_API_KEY}&search=`);
-    }
+    if(!name){
+    
+        videogamesData1 = await axios.get(`https://api.rawg.io/api/games?key=${YOUR_API_KEY}&search=${name || ''}`);
+
+        videogamesData2 = await axios.get(`https://api.rawg.io/api/games?key=${YOUR_API_KEY}&search=${name || ''}&page=2`);
+
+        videogamesData3 = await axios.get(`https://api.rawg.io/api/games?key=${YOUR_API_KEY}&search=${name || ''}&page=3`);
+
+        videogamesData4 = await axios.get(`https://api.rawg.io/api/games?key=${YOUR_API_KEY}&search=${name || ''}&page=4`);
+
+        videogamesData5 = await axios.get(`https://api.rawg.io/api/games?key=${YOUR_API_KEY}&search=${name || ''}&page=5`);
     // console.log('vgData1.data.results:', videogamesData1.data.results);
 
-    let array = Object.values(videogamesData1.data.results);
+    var array =[ ...Object.values(videogamesData1.data.results),...Object.values(videogamesData2.data.results),...Object.values(videogamesData3.data.results),...Object.values(videogamesData4.data.results),...Object.values(videogamesData5.data.results)];
+}else{
+
+    videogamesData1 = await axios.get(`https://api.rawg.io/api/games?key=${YOUR_API_KEY}&search=${name || ''}`)
+    
+    // videogamesData2 = await axios.get(`https://api.rawg.io/api/games?key=${YOUR_API_KEY}&search=${name || ''}&page=2`)
+
+    // videogamesData3 = await axios.get(`https://api.rawg.io/api/games?key=${YOUR_API_KEY}&search=${name || ''}&page=3`)
+
+    // videogamesData4 = await axios.get(`https://api.rawg.io/api/games?key=${YOUR_API_KEY}&search=${name || ''}&page=2`)
+
+    // videogamesData5 = await axios.get(`https://api.rawg.io/api/games?key=${YOUR_API_KEY}&search=${name || ''}&page=2`)
+
+    array = [...Object.values(videogamesData1.data.results)];
+
+    // ,...Object.values(videogamesData2.data.results)
+}
+
     let videogamesData = await  Promise.all(array.map(i=>{ // promise.all para cumplir con todos los mapeos del arreglo o con ninguno  ¿¿¿??? ;s
         return {
             name : i.name,
-            image_background : i.image_background,
+            image_background : i.background_image,
             released : i.released,
             rating : i.rating,
             score : i.score,
@@ -75,6 +98,8 @@ router.get('/games', async function(req,res){
     }))
 
     let dbGames = await getDatabaseInfo(name);
+
+    console.log('juegos desde la db:', dbGames);
     let apiGames = videogamesData;
     const info = dbGames.concat(apiGames);
     
@@ -241,12 +266,16 @@ router.post('/games', async (req,res)=>{
       })
       console.log('juego creado: vgame.datavlues', vGame.dataValues);
 
-      let genresDb = await Genres.findAll({
+      try
+      {
+      var genresDb = await Genres.findAll({
           where : {
               name : genres
           }
       })
-
+    }catch(e){
+      if(!genresDb) genresDb = ['Action']
+}
       vGame.addGenres(genresDb);
 
 
